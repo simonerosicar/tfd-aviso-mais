@@ -1,0 +1,75 @@
+:root {
+    --primary: #0056b3;
+    --secondary: #28a745;
+    --warning: #ffc107;
+    --light: #f4f7f6;
+    --dark: #333;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light);
+    color: var(--dark);
+    margin: 0;
+}
+
+header {
+    background-color: var(--primary);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+input, select, button {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    background-color: var(--primary);
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    border: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.status-pendente { color: var(--warning); font-weight: bold; }
+.status-avisado { color: var(--primary); font-weight: bold; }
+
+.btn-whatsapp {
+    background-color: var(--secondary);
+    font-size: 0.8em;
+} 
