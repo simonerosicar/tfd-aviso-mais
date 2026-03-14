@@ -1,19 +1,20 @@
-TFD Aviso+
-Sobre o Projeto
-Este sistema foi criado para resolver um problema real do setor de Tratamento Fora do Domicílio (TFD) em Içara/SC. O objetivo é garantir que nenhum paciente perca sua consulta por falta de aviso, automatizando o alerta via WhatsApp.
+# TFD Aviso+
 
-Funcionalidades
-Cadastro de agendamentos autorizados.
+## Sobre o Projeto
+Este sistema foi criado para resolver um problema real do setor de Tratamento Fora do Domicílio (TFD) em Içara/SC.
 
-Mudança de status do paciente (Pendente/Avisado).
+O objetivo é garantir que nenhum paciente perca sua consulta por falta de aviso, automatizando o alerta via WhatsApp.
 
-Integração direta com WhatsApp para envio de mensagens rápidas.
+## Funcionalidades
+- Cadastro de agendamentos autorizados
+- Mudança de status do paciente (Pendente / Avisado)
+- Integração com WhatsApp para envio de mensagens rápidas
 
-Tecnologias Utilizadas
-HTML5: Estruturação da página.
+## Tecnologias Utilizadas
+- HTML5 — estrutura da página
+- CSS3 — estilização e layout
+- JavaScript — lógica de cadastro e simulação de notificações
 
-CSS3: Estilização e layout profissional.
-
-JavaScript: Lógica de cadastro e simulação de notificações.
-
-Desenvolvido por Simone Rodrigues da Silva Cardozo – Estudante de Engenharia de Software.
+## Autora
+Desenvolvido por **Simone Rodrigues da Silva Cardozo**  
+Estudante de **Engenharia de Software** e **Técnico em Desenvolvimento de Sistemas**
