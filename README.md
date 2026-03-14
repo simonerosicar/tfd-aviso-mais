@@ -10,7 +10,7 @@ O objetivo é garantir que nenhum paciente perca sua consulta por falta de aviso
 - Mudança de status do paciente (Pendente / Avisado)
 - Integração com WhatsApp para envio de mensagens rápidas
 
-## Tecnologias Utilizadas
+  TEC. Utilizadas
 - HTML5 — estrutura da página
 - CSS3 — estilização e layout
 - JavaScript — lógica de cadastro e simulação de notificações
