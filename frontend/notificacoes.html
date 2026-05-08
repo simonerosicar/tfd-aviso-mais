@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFD Aviso+ | Notificações</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><h1>🏥 TFD Aviso+</h1><span>Içara / SC</span></div>
+    <a href="index.html"        class="nav-item"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a href="pacientes.html"    class="nav-item"><span class="icon">👥</span><span>Pacientes</span></a>
+    <a href="agendamentos.html" class="nav-item"><span class="icon">📅</span><span>Agendamentos</span></a>
+    <a href="notificacoes.html" class="nav-item active"><span class="icon">📣</span><span>Notificações</span></a>
+    <a href="auditoria.html"    class="nav-item"><span class="icon">🔍</span><span>Auditoria</span></a>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Notificações</div>
+        <div class="page-subtitle">Disparo simultâneo — WhatsApp + SMS + Ligação</div>
+      </div>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="busca" placeholder="Buscar paciente, procedimento... (Ctrl+F)">
+        <span class="search-hint" id="search-count"></span>
+      </div>
+    </div>
+
+    <!-- DISPARO EM LOTE -->
+    <div class="card">
+      <div class="card-title">📣 Disparar avisos — Pendentes</div>
+      <div class="alert alert-info">
+        <span>ℹ️</span>
+        <span>Selecione os agendamentos e clique em <strong>Avisar Selecionados</strong> para disparar WhatsApp + SMS + Ligação simultaneamente para o paciente e grupo familiar.</span>
+      </div>
+      <div class="btn-group" style="margin-bottom:16px">
+        <button class="btn btn-primary" onclick="dispararSelecionados()">📣 Avisar Selecionados</button>
+        <button class="btn btn-ghost"   onclick="selecionarTodos()">☑️ Selecionar Todos</button>
+        <button class="btn btn-ghost"   onclick="limparSelecao()">✕ Limpar</button>
+      </div>
+      <div class="table-wrap">
+        <table id="tabela-pendentes">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="chk-todos" onchange="toggleTodos(this)"></th>
+              <th>Paciente</th>
+              <th>Procedimento</th>
+              <th>Clínica / Cidade</th>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Perfil</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-pendentes">
+            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="card">
+      <div class="card-title">📋 Histórico de notificações</div>
+      <div class="table-wrap">
+        <table id="tabela-historico">
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Procedimento</th>
+              <th>Canal</th>
+              <th>Destinatário</th>
+              <th>Status</th>
+              <th>Disparado em</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-historico">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- RESULTADO DO DISPARO -->
+<div class="modal-overlay" id="modal-resultado">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✅ Resultado do disparo</div>
+      <button class="modal-close" onclick="fecharModal('modal-resultado')">✕</button>
+    </div>
+    <div id="resultado-conteudo"></div>
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" onclick="fecharModal('modal-resultado')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+let agendamentos = [];
+
+async function carregar() {
+  agendamentos = await get('/agendamentos?status=pendente');
+  const tbody = document.getElementById('tbody-pendentes');
+  if (!agendamentos.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum agendamento pendente</td></tr>';
+  } else {
+    tbody.innerHTML = agendamentos.map(a => `
+      <tr>
+        <td><input type="checkbox" class="chk-ag" value="${a.id}"></td>
+        <td><strong>${a.paciente_nome}</strong><br><small style="color:var(--text-muted)">${a.cns||''}</small></td>
+        <td>${a.procedimento}</td>
+        <td>${a.clinica}<br><small style="color:var(--text-muted)">${a.cidade}</small></td>
+        <td>${formatarData(a.data_proc)}</td>
+        <td>${a.hora_proc}</td>
+        <td>${badgePerfil(a.perfil) || '—'}</td>
+        <td>${badgeStatus(a.status)}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="disparar(${a.id})">📣 Avisar</button></td>
+      </tr>
+    `).join('');
+  }
+
+  // Histórico
+  const hist = await get('/notificacoes');
+  const th = document.getElementById('tbody-historico');
+  const canaisIcon = { whatsapp:'💬', sms:'📱', ligacao:'📞', agente:'👤' };
+  th.innerHTML = hist.slice(0, 50).map(n => `
+    <tr>
+      <td>${n.paciente_nome}</td>
+      <td>${n.procedimento}</td>
+      <td>${canaisIcon[n.canal]||''} ${n.canal}</td>
+      <td>${n.destinatario}</td>
+      <td>${badgeStatus(n.status)}</td>
+      <td>${n.disparado_em}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Nenhuma notificação enviada ainda</td></tr>';
+}
+
+async function disparar(id) {
+  toast('Disparando para todos os canais...', 'info');
+  const r = await post(`/notificacoes/disparar/${id}`, {});
+  if (r.ok) {
+    mostrarResultado(r.resultados);
+    carregar();
+  } else {
+    toast('Erro: ' + r.erro, 'error');
+  }
+}
+
+async function dispararSelecionados() {
+  const ids = [...document.querySelectorAll('.chk-ag:checked')].map(c => parseInt(c.value));
+  if (!ids.length) { toast('Selecione ao menos um agendamento', 'error'); return; }
+  toast(`Disparando para ${ids.length} agendamento(s)...`, 'info');
+  const r = await post('/notificacoes/disparar-lote', { ids });
+  const total = r.resumo.reduce((s, x) => s + x.total, 0);
+  toast(`✅ ${total} notificações enviadas para ${ids.length} paciente(s)!`, 'success');
+  carregar();
+}
+
+function mostrarResultado(resultados) {
+  const canaisIcon = { whatsapp:'💬', sms:'📱', ligacao:'📞', agente:'👤' };
+  document.getElementById('resultado-conteudo').innerHTML = `
+    <p style="margin-bottom:12px;color:var(--text-muted)">
+      <strong>${resultados.length}</strong> notificações disparadas simultaneamente:
+    </p>
+    ${resultados.map(r => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span>${canaisIcon[r.canal]||'📨'}</span>
+        <span>${r.tipo === 'familia' ? `Familiar: ${r.nome}` : 'Paciente'}</span>
+        <span style="color:var(--text-muted)">${r.canal}</span>
+        <span class="badge badge-${r.status}">${r.status}</span>
+      </div>
+    `).join('')}
+  `;
+  abrirModal('modal-resultado');
+}
+
+function toggleTodos(chk) {
+  document.querySelectorAll('.chk-ag').forEach(c => c.checked = chk.checked);
+}
+
+function selecionarTodos() {
+  document.querySelectorAll('.chk-ag').forEach(c => c.checked = true);
+  document.getElementById('chk-todos').checked = true;
+}
+
+function limparSelecao() {
+  document.querySelectorAll('.chk-ag').forEach(c => c.checked = false);
+  document.getElementById('chk-todos').checked = false;
+}
+
+iniciarBusca('busca', 'tabela-pendentes');
+carregar();
+</script>
+</body>
+</html>

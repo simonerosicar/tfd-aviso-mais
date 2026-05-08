@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFD Aviso+ | Pacientes</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><h1>🏥 TFD Aviso+</h1><span>Içara / SC</span></div>
+    <a href="index.html"        class="nav-item"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a href="pacientes.html"    class="nav-item active"><span class="icon">👥</span><span>Pacientes</span></a>
+    <a href="agendamentos.html" class="nav-item"><span class="icon">📅</span><span>Agendamentos</span></a>
+    <a href="notificacoes.html" class="nav-item"><span class="icon">📣</span><span>Notificações</span></a>
+    <a href="auditoria.html"    class="nav-item"><span class="icon">🔍</span><span>Auditoria</span></a>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Pacientes</div>
+        <div class="page-subtitle">Cadastro e gestão de pacientes</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="busca" placeholder="Buscar por nome, CNS, bairro... (Ctrl+F)">
+          <span class="search-hint" id="search-count"></span>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModal('modal-paciente')">+ Novo Paciente</button>
+      </div>
+    </div>
+
+    <div id="alerta-homonimo"></div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tabela-pacientes">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>CNS</th>
+              <th>Data Nasc.</th>
+              <th>Bairro</th>
+              <th>Telefone</th>
+              <th>Perfil</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-pacientes">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL CADASTRO -->
+<div class="modal-overlay" id="modal-paciente">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-titulo">Novo Paciente</div>
+      <button class="modal-close" onclick="fecharModal('modal-paciente')">✕</button>
+    </div>
+    <form id="form-paciente">
+      <input type="hidden" id="pac-id">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Nome completo *</label>
+          <input type="text" id="pac-nome" required>
+        </div>
+        <div class="form-group">
+          <label>CNS</label>
+          <input type="text" id="pac-cns" maxlength="15">
+        </div>
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" id="pac-cpf" maxlength="14">
+        </div>
+        <div class="form-group">
+          <label>Data de Nascimento *</label>
+          <input type="date" id="pac-nasc" required>
+        </div>
+        <div class="form-group">
+          <label>Nome da Mãe</label>
+          <input type="text" id="pac-mae">
+        </div>
+        <div class="form-group full">
+          <label>Endereço</label>
+          <input type="text" id="pac-end">
+        </div>
+        <div class="form-group">
+          <label>Bairro</label>
+          <input type="text" id="pac-bairro">
+        </div>
+        <div class="form-group">
+          <label>Telefone 1 (WhatsApp)</label>
+          <input type="tel" id="pac-tel1" placeholder="48999999999">
+        </div>
+        <div class="form-group">
+          <label>Telefone 2</label>
+          <input type="tel" id="pac-tel2">
+        </div>
+        <div class="form-group">
+          <label>Telefone 3</label>
+          <input type="tel" id="pac-tel3">
+        </div>
+        <div class="form-group">
+          <label>Perfil especial</label>
+          <select id="pac-perfil">
+            <option value="padrao">Padrão</option>
+            <option value="idoso">👴 Idoso (sem WhatsApp)</option>
+            <option value="analfabeto">📢 Analfabeto (precisa de áudio)</option>
+            <option value="sem_familia">👤 Sem grupo familiar</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea id="pac-obs" placeholder="Informações relevantes sobre o paciente..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px">
+            <input type="checkbox" id="pac-lgpd" style="width:auto">
+            Paciente consentiu com o uso dos dados (LGPD)
+          </label>
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top:20px">
+        <button type="submit" class="btn btn-primary">💾 Salvar</button>
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-paciente')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+let pacientes = [];
+
+async function carregar() {
+  pacientes = await get('/pacientes');
+  renderizar(pacientes);
+}
+
+function renderizar(lista) {
+  const tbody = document.getElementById('tbody-pacientes');
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum paciente cadastrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = lista.map(p => `
+    <tr>
+      <td><strong>${p.nome}</strong></td>
+      <td>${p.cns || '—'}</td>
+      <td>${formatarData(p.data_nasc)}</td>
+      <td>${p.bairro || '—'}</td>
+      <td>${p.telefone1 || '—'}</td>
+      <td>${badgePerfil(p.perfil) || '<span style="color:var(--text-muted)">Padrão</span>'}</td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-ghost btn-sm" onclick="editar(${p.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="inativar(${p.id}, '${p.nome}')">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function editar(id) {
+  const p = await get(`/pacientes/${id}`);
+  document.getElementById('modal-titulo').textContent = 'Editar Paciente';
+  document.getElementById('pac-id').value    = p.id;
+  document.getElementById('pac-nome').value  = p.nome;
+  document.getElementById('pac-cns').value   = p.cns || '';
+  document.getElementById('pac-cpf').value   = p.cpf || '';
+  document.getElementById('pac-nasc').value  = p.data_nasc;
+  document.getElementById('pac-mae').value   = p.nome_mae || '';
+  document.getElementById('pac-end').value   = p.endereco || '';
+  document.getElementById('pac-bairro').value= p.bairro || '';
+  document.getElementById('pac-tel1').value  = p.telefone1 || '';
+  document.getElementById('pac-tel2').value  = p.telefone2 || '';
+  document.getElementById('pac-tel3').value  = p.telefone3 || '';
+  document.getElementById('pac-perfil').value= p.perfil;
+  document.getElementById('pac-obs').value   = p.observacoes || '';
+  document.getElementById('pac-lgpd').checked= !!p.consentimento_lgpd;
+  abrirModal('modal-paciente');
+}
+
+async function inativar(id, nome) {
+  if (!confirm(`Inativar paciente "${nome}"? Os dados serão mantidos conforme LGPD.`)) return;
+  await del(`/pacientes/${id}`);
+  toast('Paciente inativado', 'success');
+  carregar();
+}
+
+document.getElementById('form-paciente').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('pac-id').value;
+  const dados = {
+    nome:              document.getElementById('pac-nome').value,
+    cns:               document.getElementById('pac-cns').value,
+    cpf:               document.getElementById('pac-cpf').value,
+    data_nasc:         document.getElementById('pac-nasc').value,
+    nome_mae:          document.getElementById('pac-mae').value,
+    endereco:          document.getElementById('pac-end').value,
+    bairro:            document.getElementById('pac-bairro').value,
+    telefone1:         document.getElementById('pac-tel1').value,
+    telefone2:         document.getElementById('pac-tel2').value,
+    telefone3:         document.getElementById('pac-tel3').value,
+    perfil:            document.getElementById('pac-perfil').value,
+    observacoes:       document.getElementById('pac-obs').value,
+    consentimento_lgpd:document.getElementById('pac-lgpd').checked
+  };
+
+  let r;
+  if (id) {
+    r = await put(`/pacientes/${id}`, dados);
+    toast('Paciente atualizado!', 'success');
+  } else {
+    r = await post('/pacientes', dados);
+    if (r.alerta_homonimo) {
+      document.getElementById('alerta-homonimo').innerHTML =
+        `<div class="alert alert-warning">⚠️ ${r.alerta_homonimo}</div>`;
+    }
+    toast('Paciente cadastrado!', 'success');
+  }
+
+  fecharModal('modal-paciente');
+  document.getElementById('form-paciente').reset();
+  document.getElementById('pac-id').value = '';
+  document.getElementById('modal-titulo').textContent = 'Novo Paciente';
+  carregar();
+});
+
+iniciarBusca('busca', 'tabela-pacientes');
+carregar();
+</script>
+</body>
+</html>

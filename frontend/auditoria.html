@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFD Aviso+ | Auditoria LGPD</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><h1>🏥 TFD Aviso+</h1><span>Içara / SC</span></div>
+    <a href="index.html"        class="nav-item"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a href="pacientes.html"    class="nav-item"><span class="icon">👥</span><span>Pacientes</span></a>
+    <a href="agendamentos.html" class="nav-item"><span class="icon">📅</span><span>Agendamentos</span></a>
+    <a href="notificacoes.html" class="nav-item"><span class="icon">📣</span><span>Notificações</span></a>
+    <a href="auditoria.html"    class="nav-item active"><span class="icon">🔍</span><span>Auditoria</span></a>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Auditoria LGPD</div>
+        <div class="page-subtitle">Registro completo de todas as ações — Lei 13.709/2018</div>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <span>🔒</span>
+      <span>Todos os acessos, cadastros, alterações e notificações são registrados automaticamente conforme exigido pela <strong>LGPD (Lei Geral de Proteção de Dados)</strong>. Este log não pode ser alterado.</span>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="card">
+      <div class="card-title">🔎 Filtros</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Buscar</label>
+          <input type="text" id="busca" placeholder="Nome, ação, detalhes... (Ctrl+F)">
+        </div>
+        <div class="form-group">
+          <label>Tipo de ação</label>
+          <select id="filtro-acao">
+            <option value="">Todas</option>
+            <option value="CADASTRO">Cadastro</option>
+            <option value="ATUALIZACAO">Atualização</option>
+            <option value="INATIVACAO">Inativação</option>
+            <option value="NOTIFICACAO">Notificação</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data início</label>
+          <input type="date" id="data-inicio">
+        </div>
+        <div class="form-group">
+          <label>Data fim</label>
+          <input type="date" id="data-fim">
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top:12px">
+        <button class="btn btn-primary" onclick="carregar()">🔍 Filtrar</button>
+        <button class="btn btn-ghost"   onclick="limpar()">✕ Limpar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tabela-auditoria">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Ação</th>
+              <th>Tabela</th>
+              <th>Detalhes</th>
+              <th>Usuário</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-auditoria">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+const acaoIcon = {
+  CADASTRO: '➕', ATUALIZACAO: '✏️', INATIVACAO: '🗑️', NOTIFICACAO: '📣'
+};
+
+async function carregar() {
+  const q    = document.getElementById('busca').value;
+  const acao = document.getElementById('filtro-acao').value;
+  const di   = document.getElementById('data-inicio').value;
+  const df   = document.getElementById('data-fim').value;
+
+  let url = '/auditoria?';
+  if (q)    url += `q=${encodeURIComponent(q)}&`;
+  if (acao) url += `acao=${acao}&`;
+  if (di)   url += `data_inicio=${di}&`;
+  if (df)   url += `data_fim=${df}&`;
+
+  const logs = await get(url);
+  const tbody = document.getElementById('tbody-auditoria');
+
+  if (!logs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum registro encontrado</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = logs.map(l => `
+    <tr>
+      <td style="white-space:nowrap;color:var(--text-muted);font-size:13px">${l.criado_em}</td>
+      <td><span style="font-size:16px">${acaoIcon[l.acao]||'📌'}</span> ${l.acao}</td>
+      <td><code style="background:var(--bg-input);padding:2px 6px;border-radius:4px;font-size:12px">${l.tabela||'—'}</code></td>
+      <td>${l.detalhes||'—'}</td>
+      <td>${l.usuario||'operador'}</td>
+    </tr>
+  `).join('');
+}
+
+function limpar() {
+  document.getElementById('busca').value = '';
+  document.getElementById('filtro-acao').value = '';
+  document.getElementById('data-inicio').value = '';
+  document.getElementById('data-fim').value = '';
+  carregar();
+}
+
+// Ctrl+F na busca
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    document.getElementById('busca').focus();
+  }
+});
+
+carregar();
+</script>
+</body>
+</html>
