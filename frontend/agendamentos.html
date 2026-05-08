@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFD Aviso+ | Agendamentos</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><h1>🏥 TFD Aviso+</h1><span>Içara / SC</span></div>
+    <a href="index.html"        class="nav-item"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a href="pacientes.html"    class="nav-item"><span class="icon">👥</span><span>Pacientes</span></a>
+    <a href="agendamentos.html" class="nav-item active"><span class="icon">📅</span><span>Agendamentos</span></a>
+    <a href="notificacoes.html" class="nav-item"><span class="icon">📣</span><span>Notificações</span></a>
+    <a href="auditoria.html"    class="nav-item"><span class="icon">🔍</span><span>Auditoria</span></a>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Agendamentos</div>
+        <div class="page-subtitle">Cadastro e acompanhamento de procedimentos</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="busca" placeholder="Buscar paciente, procedimento, clínica... (Ctrl+F)">
+          <span class="search-hint" id="search-count"></span>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModal('modal-agendamento')">+ Novo Agendamento</button>
+      </div>
+    </div>
+
+    <!-- FILTROS RÁPIDOS -->
+    <div class="card">
+      <div class="form-grid" style="align-items:flex-end">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="filtro-status" onchange="carregar()">
+            <option value="">Todos</option>
+            <option value="pendente" selected>Pendente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="realizado">Realizado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data início</label>
+          <input type="date" id="filtro-inicio" onchange="carregar()">
+        </div>
+        <div class="form-group">
+          <label>Data fim</label>
+          <input type="date" id="filtro-fim" onchange="carregar()">
+        </div>
+        <div class="form-group">
+          <button class="btn btn-ghost" onclick="limparFiltros()" style="margin-top:20px">✕ Limpar filtros</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABELA -->
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tabela-agendamentos">
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Procedimento</th>
+              <th>Clínica</th>
+              <th>Cidade</th>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Tipo</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-agendamentos">
+            <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL CADASTRO / EDIÇÃO -->
+<div class="modal-overlay" id="modal-agendamento">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-titulo">Novo Agendamento</div>
+      <button class="modal-close" onclick="fecharModal('modal-agendamento')">✕</button>
+    </div>
+    <form id="form-agendamento">
+      <input type="hidden" id="ag-id">
+      <div class="form-grid">
+
+        <!-- Busca de paciente -->
+        <div class="form-group full">
+          <label>Paciente *</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="ag-paciente-busca" placeholder="Digite o nome ou CNS para buscar...">
+            <button type="button" class="btn btn-ghost" onclick="buscarPaciente()">🔍</button>
+          </div>
+          <input type="hidden" id="ag-paciente-id">
+          <div id="resultado-paciente" style="margin-top:6px"></div>
+        </div>
+
+        <div class="form-group full">
+          <label>Procedimento *</label>
+          <input type="text" id="ag-procedimento" required placeholder="Ex: Capsulotomia, Consulta Cardiologia...">
+        </div>
+
+        <div class="form-group">
+          <label>Clínica / Hospital *</label>
+          <input type="text" id="ag-clinica" required placeholder="Ex: Hospital São José">
+        </div>
+
+        <div class="form-group">
+          <label>Cidade *</label>
+          <input type="text" id="ag-cidade" required placeholder="Ex: Criciúma">
+        </div>
+
+        <div class="form-group">
+          <label>Data *</label>
+          <input type="date" id="ag-data" required>
+        </div>
+
+        <div class="form-group">
+          <label>Hora *</label>
+          <input type="time" id="ag-hora" required>
+        </div>
+
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="ag-tipo">
+            <option value="consulta">Consulta</option>
+            <option value="exame">Exame</option>
+            <option value="cirurgia">Cirurgia</option>
+            <option value="retorno">Retorno</option>
+            <option value="urgencia">⚡ Urgência</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Status</label>
+          <select id="ag-status">
+            <option value="pendente">Pendente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="realizado">Realizado</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea id="ag-obs" placeholder="Informações adicionais, acompanhante, documentos necessários..."></textarea>
+        </div>
+      </div>
+
+      <div class="btn-group" style="margin-top:20px">
+        <button type="submit" class="btn btn-primary">💾 Salvar</button>
+        <button type="button" class="btn btn-success" id="btn-avisar-modal" style="display:none" onclick="avisarDoModal()">📣 Salvar e Avisar</button>
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-agendamento')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL DETALHES -->
+<div class="modal-overlay" id="modal-detalhes">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Detalhes do Agendamento</div>
+      <button class="modal-close" onclick="fecharModal('modal-detalhes')">✕</button>
+    </div>
+    <div id="detalhes-conteudo"></div>
+    <div class="btn-group" style="margin-top:20px">
+      <button class="btn btn-primary" id="btn-avisar-detalhes">📣 Avisar Agora</button>
+      <button class="btn btn-ghost" onclick="fecharModal('modal-detalhes')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+let agendamentoIdAtual = null;
+
+// ---- CARREGAR LISTA ----
+async function carregar() {
+  const status = document.getElementById('filtro-status').value;
+  const di     = document.getElementById('filtro-inicio').value;
+  const df     = document.getElementById('filtro-fim').value;
+  const q      = document.getElementById('busca').value;
+
+  let url = '/agendamentos?';
+  if (status) url += `status=${status}&`;
+  if (di)     url += `data_inicio=${di}&`;
+  if (df)     url += `data_fim=${df}&`;
+  if (q)      url += `q=${encodeURIComponent(q)}&`;
+
+  const lista = await get(url);
+  const tbody = document.getElementById('tbody-agendamentos');
+
+  const tipoIcon = { consulta:'🩺', exame:'🔬', cirurgia:'⚕️', retorno:'🔄', urgencia:'⚡' };
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Nenhum agendamento encontrado</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(a => `
+    <tr>
+      <td>
+        <strong>${a.paciente_nome}</strong>
+        ${a.perfil !== 'padrao' ? badgePerfil(a.perfil) : ''}
+        <br><small style="color:var(--text-muted)">${a.cns || ''}</small>
+      </td>
+      <td>${a.procedimento}</td>
+      <td>${a.clinica}</td>
+      <td>${a.cidade}</td>
+      <td><strong>${formatarData(a.data_proc)}</strong></td>
+      <td>${a.hora_proc}</td>
+      <td>${tipoIcon[a.tipo] || ''} ${a.tipo}</td>
+      <td>${badgeStatus(a.status)}</td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-primary btn-sm" onclick="disparar(${a.id})" title="Avisar paciente">📣</button>
+          <button class="btn btn-ghost btn-sm"   onclick="verDetalhes(${a.id})" title="Ver detalhes">👁️</button>
+          <button class="btn btn-ghost btn-sm"   onclick="editar(${a.id})" title="Editar">✏️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ---- BUSCAR PACIENTE NO FORMULÁRIO ----
+async function buscarPaciente() {
+  const termo = document.getElementById('ag-paciente-busca').value.trim();
+  if (!termo) return;
+  const lista = await get(`/pacientes?q=${encodeURIComponent(termo)}`);
+  const div = document.getElementById('resultado-paciente');
+  if (!lista.length) {
+    div.innerHTML = '<p style="color:var(--danger);font-size:13px">Nenhum paciente encontrado</p>';
+    return;
+  }
+  div.innerHTML = lista.slice(0, 5).map(p => `
+    <div onclick="selecionarPaciente(${p.id}, '${p.nome.replace(/'/g,"\\'")}', '${p.perfil}')"
+         style="padding:8px 12px;background:var(--bg-input);border-radius:6px;cursor:pointer;
+                margin-bottom:4px;font-size:13px;border:1px solid var(--border)"
+         onmouseover="this.style.background='var(--bg-hover)'"
+         onmouseout="this.style.background='var(--bg-input)'">
+      <strong>${p.nome}</strong>
+      ${badgePerfil(p.perfil)}
+      <span style="color:var(--text-muted)"> — ${p.bairro || ''} | ${p.telefone1 || ''}</span>
+    </div>
+  `).join('');
+}
+
+function selecionarPaciente(id, nome, perfil) {
+  document.getElementById('ag-paciente-id').value = id;
+  document.getElementById('ag-paciente-busca').value = nome;
+  document.getElementById('resultado-paciente').innerHTML =
+    `<div class="alert alert-success" style="padding:8px 12px;font-size:13px">
+      ✅ Paciente selecionado: <strong>${nome}</strong> ${badgePerfil(perfil)}
+    </div>`;
+  // Mostrar botão "Salvar e Avisar" para urgências
+  document.getElementById('btn-avisar-modal').style.display = 'inline-flex';
+}
+
+// ---- VER DETALHES ----
+async function verDetalhes(id) {
+  const a = await get(`/agendamentos/${id}`);
+  const tipoIcon = { consulta:'🩺', exame:'🔬', cirurgia:'⚕️', retorno:'🔄', urgencia:'⚡' };
+
+  document.getElementById('detalhes-conteudo').innerHTML = `
+    <div style="display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">PACIENTE</div>
+          <div style="font-weight:600">${a.paciente_nome}</div>
+          <div style="font-size:13px;color:var(--text-muted)">${a.cns || ''} ${badgePerfil(a.perfil)}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">STATUS</div>
+          <div>${badgeStatus(a.status)}</div>
+        </div>
+      </div>
+      <hr style="border-color:var(--border)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">PROCEDIMENTO</div>
+          <div>${tipoIcon[a.tipo]||''} ${a.procedimento}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">LOCAL</div>
+          <div>${a.clinica} — ${a.cidade}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">DATA</div>
+          <div><strong>${formatarData(a.data_proc)}</strong> às <strong>${a.hora_proc}</strong></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">TELEFONE</div>
+          <div>${a.telefone1 || '—'}</div>
+        </div>
+      </div>
+      ${a.observacoes ? `
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">OBSERVAÇÕES</div>
+          <div style="background:var(--bg-input);padding:10px;border-radius:6px;font-size:13px">${a.observacoes}</div>
+        </div>` : ''}
+      ${a.obs_paciente ? `
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">OBS. DO PACIENTE</div>
+          <div style="background:var(--bg-input);padding:10px;border-radius:6px;font-size:13px">${a.obs_paciente}</div>
+        </div>` : ''}
+      ${a.familia && a.familia.length ? `
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">GRUPO FAMILIAR (${a.familia.length})</div>
+          ${a.familia.map(f => `
+            <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <span>👤 ${f.nome}</span>
+              <span style="color:var(--text-muted)">${f.parentesco || ''}</span>
+              <span>${f.telefone}</span>
+            </div>
+          `).join('')}
+        </div>` : ''}
+    </div>
+  `;
+
+  document.getElementById('btn-avisar-detalhes').onclick = () => {
+    fecharModal('modal-detalhes');
+    disparar(id);
+  };
+
+  abrirModal('modal-detalhes');
+}
+
+// ---- EDITAR ----
+async function editar(id) {
+  const a = await get(`/agendamentos/${id}`);
+  agendamentoIdAtual = id;
+  document.getElementById('modal-titulo').textContent = 'Editar Agendamento';
+  document.getElementById('ag-id').value           = a.id;
+  document.getElementById('ag-paciente-busca').value = a.paciente_nome;
+  document.getElementById('ag-paciente-id').value  = a.paciente_id;
+  document.getElementById('ag-procedimento').value = a.procedimento;
+  document.getElementById('ag-clinica').value      = a.clinica;
+  document.getElementById('ag-cidade').value       = a.cidade;
+  document.getElementById('ag-data').value         = a.data_proc;
+  document.getElementById('ag-hora').value         = a.hora_proc;
+  document.getElementById('ag-tipo').value         = a.tipo;
+  document.getElementById('ag-status').value       = a.status;
+  document.getElementById('ag-obs').value          = a.observacoes || '';
+  document.getElementById('resultado-paciente').innerHTML =
+    `<div class="alert alert-success" style="padding:8px 12px;font-size:13px">✅ ${a.paciente_nome}</div>`;
+  document.getElementById('btn-avisar-modal').style.display = 'inline-flex';
+  abrirModal('modal-agendamento');
+}
+
+// ---- DISPARAR ----
+async function disparar(id) {
+  toast('Disparando para todos os canais simultaneamente...', 'info');
+  const r = await post(`/notificacoes/disparar/${id}`, {});
+  if (r.ok) {
+    toast(`✅ ${r.total} notificações enviadas!`, 'success');
+    carregar();
+  } else {
+    toast('Erro: ' + r.erro, 'error');
+  }
+}
+
+async function avisarDoModal() {
+  const id = document.getElementById('ag-id').value;
+  if (id) {
+    fecharModal('modal-agendamento');
+    await disparar(id);
+  }
+}
+
+// ---- SALVAR ----
+document.getElementById('form-agendamento').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id          = document.getElementById('ag-id').value;
+  const paciente_id = document.getElementById('ag-paciente-id').value;
+
+  if (!paciente_id) {
+    toast('Selecione um paciente antes de salvar', 'error');
+    return;
+  }
+
+  const dados = {
+    paciente_id:  parseInt(paciente_id),
+    procedimento: document.getElementById('ag-procedimento').value,
+    clinica:      document.getElementById('ag-clinica').value,
+    cidade:       document.getElementById('ag-cidade').value,
+    data_proc:    document.getElementById('ag-data').value,
+    hora_proc:    document.getElementById('ag-hora').value,
+    tipo:         document.getElementById('ag-tipo').value,
+    status:       document.getElementById('ag-status').value,
+    observacoes:  document.getElementById('ag-obs').value
+  };
+
+  if (id) {
+    await put(`/agendamentos/${id}`, dados);
+    toast('Agendamento atualizado!', 'success');
+  } else {
+    const r = await post('/agendamentos', dados);
+    agendamentoIdAtual = r.id;
+    toast('Agendamento cadastrado!', 'success');
+  }
+
+  fecharModal('modal-agendamento');
+  limparFormulario();
+  carregar();
+});
+
+function limparFormulario() {
+  document.getElementById('form-agendamento').reset();
+  document.getElementById('ag-id').value = '';
+  document.getElementById('ag-paciente-id').value = '';
+  document.getElementById('resultado-paciente').innerHTML = '';
+  document.getElementById('modal-titulo').textContent = 'Novo Agendamento';
+  document.getElementById('btn-avisar-modal').style.display = 'none';
+  agendamentoIdAtual = null;
+}
+
+function limparFiltros() {
+  document.getElementById('filtro-status').value = '';
+  document.getElementById('filtro-inicio').value = '';
+  document.getElementById('filtro-fim').value    = '';
+  document.getElementById('busca').value         = '';
+  carregar();
+}
+
+// Fechar modal limpa o formulário
+document.getElementById('modal-agendamento').addEventListener('click', e => {
+  if (e.target === e.currentTarget) { fecharModal('modal-agendamento'); limparFormulario(); }
+});
+
+// Busca ao digitar no campo
+document.getElementById('ag-paciente-busca').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); buscarPaciente(); }
+});
+
+iniciarBusca('busca', 'tabela-agendamentos');
+carregar();
+</script>
+</body>
+</html>
